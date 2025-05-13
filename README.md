@@ -1,57 +1,137 @@
 # APS - Lógica da Computação
 
-## Projeto da disciplina de Lógica da Computação de Engenharia da Computação, Insper - 25.1
+**Desenvolvedor**: Carlos Eduardo Porciuncula Yamada
 
+## Descrição
 
-A seguinte linguagem consiste em facilitar o processo de criar eventos em uma agenda, além de gerá-la através de programação. Com isso, uma pessoa que não possui experiência em programação deveria conseguir montar sua rotina ao longo de um determinado período de tempo e gerar uma representação visual das tarefas e eventos que criou ao longo do código.
+O seguinte projeto foi desenvolvido para a disciplina de Lógica da Computação do curso de Engenharia da Computação no Insper - 25.1.
 
-Para isso, um possível modelo inicial para a EBNF da linguagem pode ser dado por:
+A linguagem desenvolvida nesse projeto é uma representação em código das instruções que o usuário precisa fornecer para escapar de uma sala no estilo *Escape Room*. Para testes, uma sala predefinida será utilizada e os *outputs* se darão com base no algoritmo a ser computado.
 
-**Letras e digitos**
+## EBNF
+
+```ebnf
+PROGRAM = "enter", "\n", { STATEMENT }, "end";
+
+STATEMENT = ( λ | MOVEMENT_BLOCK | INTERACT_BLOCK | SEQUENCE | CONDITIONAL | LOOP | ASSIGNMENT ), "\n";
+
+ASSIGNMENT = IDENTIFIER, "=", INTERACT_BLOCK;
+
+MOVEMENT_BLOCK = "move", DIRECTION, VALUE;
+
+INTERACT_BLOCK = "interact", ( "open" | "collect" ), DIRECTION;
+
+SEQUENCE = "define", "sequence", ( IDENTIFIER ), ":", "\n", { STATEMENT }, "sequence", "end";
+
+CONDITIONAL = "if", ( IF_CONDITION ), ":", "\n", { STATEMENT }, "else", ":", { STATEMENT }, "conditional", "end";
+
+IF_CONDITION = ( COLLECTABLE_CONDITION | INTERACTABLE_CONDITION );
+
+COLLECTABLE_CONDITION = COLLECTABLE, RELATIONAL_OPERATOR, VALUE;
+
+INTERACTABLE_CONDITION = "object", DIRECTION, RELATIONAL_BOOL, INTERACTABLE;
+
+INTERACTABLE_STATE = "object", DIRECTION, RELATIONAL_BOOL, STATE;
+
+LOOP = "while", LOOP_CONDITION, ":", "\n", { STATEMENT }, "loop", "end";
+
+LOOP_CONDITION = ( COLLECTABLE_CONDITION | INTERACTABLE_CONDITION | INTERACTABLE_STATE );
+
+RELATIONAL_BOOL = ( "is" | "is not" );
+
+RELATIONAL_OPERATOR = ( ">" | "<" | ">=" | "<=" | "==" | "!=" );
+
+IDENTIFIER = LETTER, { LETTER | DIGIT | "_"};
+
+VALUE = DIGIT, { DIGIT };
+
+DIRECTION = ( "up" | "right" | "down" | "left" );
+
+COLLECTABLE = ( "key" | "coins" | "card" );
+
+INTERACTABLE = ( "locker" | "closet" | "desk" | "exit_door" )
+
+STATE = ( "locked" | "unlocked" );
+
+LETTER = ( a | ... | z | A | ... | Z );
+
+DIGIT = ( 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 );
 
 ```
-decimal_digit   = "0" ... "9"
-```
 
-**Palavras reservadas (keywords)**: palavras que nao podem ser usadas como identificadores
+## Exemplos
 
-```
-timeout hour    min     month   date
-insert  if      else    while
-```
+Imaginando uma sala que possua o seguinte desenho:
 
-**Tipos**
+![1747097046660](image/README/1747097046660.png)
 
-```
-task    event   time    timeout
-```
+Temos dois exemplos dos possíveis programas:
 
-**Constantes**
+### Exemplo 1
+
+#### Programa
 
 ```
-"jan" "feb" "mar" "apr" "may" "jun" "jul" "aug" "sep" "oct" "nov" "dec"
+enter
+move right 5
+
+if object right is closet:
+    chave = interact collect right
+
+move down 6
+if object down is exit_door:
+    interact open down
+
+end
 ```
 
-**Funções**
+#### Saída
 
 ```
-insert      remove      generate
+Entrou na sala...
+Movimentou-se para a direita em 5 unidade(s)
+
+Interagiu com o armário e coletou uma chave
+
+Movimentou-se para baixo em 6 unidade(s)
+
+Interagiu com a porta de saída
+
+Escapou da sala com sucesso!
 ```
 
-`insert(Identificador)`: inserir eventos/tarefas na agenda antes de gerá-la
-`remove(Identificador)`: remover eventos/tarefas na agenda antes de gerá-la
-`generate()`: gera a agenda final
+### Exemplo 2
 
-**Bloco**: um bloco de código pode ser definido pela seguinte sintaxe
+#### Programa
 
 ```
-Bloco               = "{" SequenciaDeCodigo "}"
-SequenciaDeCodigo   = { Codigo }
+enter
+move right 4
+
+if object right is closet:
+    chave = interact collect right
+
+move right 1
+move down 6
+if object down is exit_door:
+    interact open down
+
+end
 ```
 
-**Declaração de variáveis**
+#### Saída
 
 ```
-Declaracao  = Tipo Identificador DecTempo "=" Inteiro
-DecTempo    = hour | min | month
+Entrou na sala...
+Movimentou-se para a direita em 4 unidade(s)
+
+Tentou interagir com armário na direita, mas não encontrou nada...
+
+Movimentou-se para a direita em 1 unidade(s)
+
+Movimentou-se para baixo em 6 unidade(s)
+
+Interagiu com a porta de saída
+
+Falha ao sair: não possui a chave necessária para abrir a porta...
 ```
