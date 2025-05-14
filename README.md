@@ -63,7 +63,7 @@ DIGIT = ( 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 );
 
 Imaginando uma sala que possua o seguinte desenho:
 
-![1747097046660](image/README/1747097046660.png)
+![Mapa da sala de exemplo](img/map.png)
 
 Temos dois exemplos dos possíveis programas:
 
