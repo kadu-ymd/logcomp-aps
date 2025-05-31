@@ -73,12 +73,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-extern int yydebug;
 void yyerror(const char *s);
 int yylex(void);
 extern FILE *yyin;
 
-#line 82 "parser.tab.c"
+#line 81 "parser.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -548,10 +547,10 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int8 yyrline[] =
 {
-       0,    29,    29,    32,    34,    37,    39,    43,    46,    48,
-      49,    50,    51,    52,    53,    54,    58,    62,    66,    67,
-      71,    75,    79,    80,    84,    88,    89,    93,    97,   101,
-     102,   106,   107,   111,   111,   111,   111,   111,   111,   115
+       0,    28,    28,    31,    33,    36,    38,    42,    45,    47,
+      48,    49,    50,    51,    52,    53,    57,    61,    65,    66,
+      70,    74,    78,    79,    83,    87,    88,    92,    96,   100,
+     101,   105,   106,   110,   110,   110,   110,   110,   110,   114
 };
 #endif
 
@@ -1167,7 +1166,7 @@ yyreduce:
   switch (yyn)
     {
 
-#line 1171 "parser.tab.c"
+#line 1170 "parser.tab.c"
 
       default: break;
     }
@@ -1360,7 +1359,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 118 "parser.y"
+#line 117 "parser.y"
 
 
 void yyerror(const char *s) {
@@ -1368,8 +1367,6 @@ void yyerror(const char *s) {
 }
 
 int main(int argc, char **argv) {
-    yydebug = 1;
-
     if (argc > 1) {
         FILE *f = fopen(argv[1], "r");
         if (!f) {

@@ -136,3 +136,17 @@ Interagiu com a porta de saída
 
 Falha ao sair: não possui a chave necessária para abrir a porta...
 ```
+
+---
+
+### Teste
+
+Os comandos utilizados para compilar e testar a EBNF, utilizando o arquivo `teste.txt` foram, em sequência:
+
+```
+flex lexer.l
+
+bison -d parser.y
+
+gcc lex.yy.c parser.tab.c -o meu_analisador -lfl
+```
