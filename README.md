@@ -11,37 +11,39 @@ A linguagem desenvolvida nesse projeto é uma representação em código das ins
 ## EBNF
 
 ```ebnf
-PROGRAM = "enter", "\n", { STATEMENT }, "end";
+PROGRAM = "enter", "\n", { STATEMENT }, "end", [ "\n" ], YYEOF;
 
-STATEMENT = ( λ | MOVEMENT_BLOCK | INTERACT_BLOCK | SEQUENCE | CONDITIONAL | LOOP | ASSIGNMENT ), "\n";
+STATEMENT = ( λ | MOVEMENT_BLOCK | INTERACT_BLOCK | SEQUENCE_BLOCK | CONDITIONAL_BLOCK | LOOP_BLOCK | ASSIGNMENT_BLOCK | COLLECT_COMMAND ), "\n";
 
-ASSIGNMENT = IDENTIFIER, "=", INTERACT_BLOCK;
+ASSIGNMENT_BLOCK = IDENTIFIER, "=", INTERACT_BLOCK;
 
 MOVEMENT_BLOCK = "move", DIRECTION, VALUE;
 
 INTERACT_BLOCK = "interact", ( "open" | "collect" ), DIRECTION;
 
-SEQUENCE = "define", "sequence", ( IDENTIFIER ), ":", "\n", { STATEMENT }, "sequence", "end";
+SEQUENCE_BLOCK = "define", "sequence", IDENTIFIER, ":", "\n", { STATEMENT }, "sequence", "end";
 
-CONDITIONAL = "if", ( IF_CONDITION ), ":", "\n", { STATEMENT }, "else", ":", { STATEMENT }, "conditional", "end";
+CONDITIONAL_BLOCK = "if", IF_CONDITION, ":", "\n", { STATEMENT }, "else", ":", "\n", { STATEMENT }, "conditional", "end";
 
-IF_CONDITION = ( COLLECTABLE_CONDITION | INTERACTABLE_CONDITION );
+IF_CONDITION = ( COLLECTABLE_CONDITION | OBJECT_CONDITION );
 
-COLLECTABLE_CONDITION = COLLECTABLE, RELATIONAL_OPERATOR, VALUE;
+COLLECTABLE_CONDITION = IDENTIFIER, RELATIONAL_OPERATOR, VALUE;
 
-INTERACTABLE_CONDITION = "object", DIRECTION, RELATIONAL_BOOL, INTERACTABLE;
+OBJECT_CONDITION = "object", DIRECTION, RELATIONAL_BOOL, OBJECT_CONDITION_END;
 
-INTERACTABLE_STATE = "object", DIRECTION, RELATIONAL_BOOL, STATE;
+OBJECT_CONDITION_END = ( INTERACTABLE | STATE );
 
-LOOP = "while", LOOP_CONDITION, ":", "\n", { STATEMENT }, "loop", "end";
+LOOP_BLOCK = "while", LOOP_CONDITION, ":", "\n", { STATEMENT }, "loop", "end";
 
-LOOP_CONDITION = ( COLLECTABLE_CONDITION | INTERACTABLE_CONDITION | INTERACTABLE_STATE );
+LOOP_CONDITION = ( COLLECTABLE_CONDITION | OBJECT_CONDITION );
+
+COLLECT_COMMAND = "collect", COLLECTABLE, VALUE; // Adicionada se for um comando e não apenas parte de uma condição
 
 RELATIONAL_BOOL = ( "is" | "is not" );
 
 RELATIONAL_OPERATOR = ( ">" | "<" | ">=" | "<=" | "==" | "!=" );
 
-IDENTIFIER = LETTER, { LETTER | DIGIT | "_"};
+IDENTIFIER = LETTER, { LETTER | DIGIT | "_" };
 
 VALUE = DIGIT, { DIGIT };
 
@@ -49,14 +51,13 @@ DIRECTION = ( "up" | "right" | "down" | "left" );
 
 COLLECTABLE = ( "key" | "coins" | "card" );
 
-INTERACTABLE = ( "locker" | "closet" | "desk" | "exit_door" )
+INTERACTABLE = ( "locker" | "closet" | "desk" | "exit_door" );
 
 STATE = ( "locked" | "unlocked" );
 
 LETTER = ( a | ... | z | A | ... | Z );
 
 DIGIT = ( 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 );
-
 ```
 
 ## Exemplos

@@ -1,9 +1,12 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
+extern int yydebug;
 void yyerror(const char *s);
 int yylex(void);
+extern FILE *yyin;
 %}
 
 %union {
@@ -23,7 +26,12 @@ int yylex(void);
 %%
 
 program:
-    ENTER NEWLINE statements END
+    ENTER NEWLINE statements END optional_final_newline YYEOF
+    ;
+
+optional_final_newline:
+    /* vazio */
+    | NEWLINE
     ;
 
 statements:
@@ -32,16 +40,21 @@ statements:
     ;
 
 statement:
-      NEWLINE
-    | movement_block NEWLINE
-    | interact_block NEWLINE
-    | assignment NEWLINE
-    | sequence NEWLINE
-    | conditional NEWLINE
-    | loop NEWLINE
+    block_statement NEWLINE
     ;
 
-assignment:
+block_statement:
+    /* vazio */
+    | movement_block
+    | interact_block
+    | assignment_block
+    | sequence_block
+    | conditional_block
+    | loop_block
+    | collect_command
+    ;
+
+assignment_block:
     IDENTIFIER ASSIGN interact_block
     ;
 
@@ -50,38 +63,43 @@ movement_block:
     ;
 
 interact_block:
-    INTERACT (OPEN | COLLECT) DIRECTION
+    INTERACT OPEN DIRECTION
+    | INTERACT COLLECT DIRECTION
     ;
 
-sequence:
+sequence_block:
     DEFINE SEQUENCE IDENTIFIER COLON NEWLINE statements SEQUENCE END
     ;
 
-conditional:
-    IF if_condition COLON NEWLINE statements ELSE COLON statements CONDITIONAL END
+conditional_block:
+    IF if_condition COLON NEWLINE statements ELSE COLON NEWLINE statements CONDITIONAL END
     ;
 
 if_condition:
     collectable_condition
-    | interactable_condition
+    | object_condition
     ;
 
 collectable_condition:
-    COLLECTABLE relational_operator VALUE
+    IDENTIFIER relational_operator VALUE
     ;
 
-interactable_condition:
-    OBJECT DIRECTION relational_bool INTERACTABLE
+object_condition_end:
+    INTERACTABLE
+    | STATE
     ;
 
-loop:
+object_condition:
+    OBJECT DIRECTION relational_bool object_condition_end
+    ;
+
+loop_block:
     WHILE loop_condition COLON NEWLINE statements LOOP END
     ;
 
 loop_condition:
     collectable_condition
-    | interactable_condition
-    | OBJECT DIRECTION relational_bool STATE
+    | object_condition
     ;
 
 relational_bool:
@@ -93,8 +111,32 @@ relational_operator:
     GT | LT | GE | LE | EQ | NE
     ;
 
+collect_command:
+    COLLECT COLLECTABLE VALUE
+    ;
+
 %%
 
 void yyerror(const char *s) {
-    fprintf(stderr, "Erro: %s\n", s);
+    fprintf(stderr, "Erro de sintaxe: %s\n", s);
+}
+
+int main(int argc, char **argv) {
+    yydebug = 1;
+
+    if (argc > 1) {
+        FILE *f = fopen(argv[1], "r");
+        if (!f) {
+            perror(argv[1]);
+            return 1;
+        }
+        yyin = f;
+    }
+
+    yyparse();
+
+    if (argc > 1) {
+        fclose(yyin);
+    }
+    return 0;
 }
