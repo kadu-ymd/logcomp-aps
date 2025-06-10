@@ -30,7 +30,7 @@ ID          {LETTER}({LETTER}|{DIGIT}|_)*
 "loop"              { printf("DEBUG FLEX: Recognized LOOP\n"); return LOOP; }
 "object"            { printf("DEBUG FLEX: Recognized OBJECT\n"); return OBJECT; }
 "is"                { printf("DEBUG FLEX: Recognized IS\n"); return IS; }
-"is not"            { printf("DEBUG FLEX: Recognized ISNOT\n"); } // "is not" deve vir antes de "is"
+"is_not"            { printf("DEBUG FLEX: Recognized ISNOT\n"); }
 ">="                { printf("DEBUG FLEX: Recognized GE\n"); return GE; }
 "<="                { printf("DEBUG FLEX: Recognized LE\n"); return LE; }
 "=="                { printf("DEBUG FLEX: Recognized EQ\n"); return EQ; }
@@ -62,5 +62,5 @@ ID          {LETTER}({LETTER}|{DIGIT}|_)*
 {DIGIT}+            { printf("DEBUG FLEX: Recognized VALUE (%s)\n", yytext); yylval.num = atoi(yytext); return VALUE; }
 
 [ \t\r]+            ;  // ignorar espaços em branco
-.                   { fprintf(stderr, "DEBUG FLEX: UNKNOWN character: '%c' (0x%x)\n", yytext[0], yytext[0]); return yytext[0]; } // MUITO IMPORTANTE!
+.                   { fprintf(stderr, "DEBUG FLEX: UNKNOWN character: '%c' (0x%x)\n", yytext[0], yytext[0]); return yytext[0]; }
 %%

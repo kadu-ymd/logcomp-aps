@@ -14,4 +14,4 @@ conditional end
 while object up is closet :
     interact open up
 loop end
-end
+end_program

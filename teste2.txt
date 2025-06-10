@@ -1,0 +1,3 @@
+enter
+move up 10
+program end

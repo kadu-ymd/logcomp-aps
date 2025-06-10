@@ -39,7 +39,7 @@ LOOP_CONDITION = ( COLLECTABLE_CONDITION | OBJECT_CONDITION );
 
 COLLECT_COMMAND = "collect", COLLECTABLE, VALUE;
 
-RELATIONAL_BOOL = ( "is" | "is not" );
+RELATIONAL_BOOL = ( "is" | "is_not" );
 
 RELATIONAL_OPERATOR = ( ">" | "<" | ">=" | "<=" | "==" | "!=" );
 
