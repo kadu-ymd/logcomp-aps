@@ -1,0 +1,8 @@
+enter
+collect key up
+if key > 0:
+    move right 1
+else:
+    move left 1
+conditional end
+program end

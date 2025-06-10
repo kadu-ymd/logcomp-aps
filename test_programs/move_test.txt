@@ -1,0 +1,6 @@
+enter
+move up 10
+move right 5
+move down 3
+move left 7
+program end

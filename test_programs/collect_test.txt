@@ -1,0 +1,5 @@
+enter
+collect coins right
+collect card down
+collect key up
+program end

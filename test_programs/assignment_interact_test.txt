@@ -1,0 +1,3 @@
+enter
+resultado_interacao = interact open right
+program end

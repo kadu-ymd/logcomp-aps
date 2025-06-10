@@ -1,0 +1,7 @@
+enter
+if object up is locked:
+    interact open up
+else:
+    interact open down
+conditional end
+program end

@@ -1,0 +1,7 @@
+enter
+collect key up
+while key < 2:
+    collect key up
+    move up 1
+loop end
+program end

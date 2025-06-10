@@ -1,0 +1,9 @@
+enter
+define sequence MinhaSequencia:
+    move up 2
+    collect key up
+    resultado_sequencia = interact open left
+    move down 1
+sequence end
+MinhaSequencia
+program end

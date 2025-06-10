@@ -4,9 +4,7 @@ import re
 
 VAR_PATTERN = "[a-zA-Z]([a-zA-Z]|_|[0-9])*"
 
-RESERVED_WORDS = ["enter", "program", "end", "move", "interact", "define", "sequence", "conditional", "loop", "while", "collect",
-                  "up", "right", "down", "left", "key", "coins", "card", "locker", "closet", "desk", "exit_door", "locked", "unlocked",
-                  "is", "is_not", "object", "else", "if", "true", "false"]
+RESERVED_WORDS = ["enter", "program", "end", "move", "interact", "define", "sequence", "conditional", "loop", "while", "up", "right", "down", "left", "locker", "closet", "desk", "exit_door", "locked", "unlocked", "is", "is_not", "object", "else", "if", "true", "false", "collect"]
 
 
 class SymbolTable:
@@ -59,7 +57,6 @@ class PrePro:
 
 
 class Tokenizer:
-
     def __init__(self, source: str, position: int, next: Token):
         self.source = source
         self.position = position
@@ -227,7 +224,7 @@ class MovementBlock(Node):
         direction = self.children[0].value
         value = self.children[1].evaluate(st)[1]
 
-        print(f"Movendo {direction} por {value} unidades.")
+        print(f"Moving {direction} for {value} units.")
 
         return None
 
@@ -236,7 +233,7 @@ class InteractBlock(Node):
     def evaluate(self, st):
         action = self.children[0].value
         direction = self.children[1].value
-        print(f"Interagindo para {action} na direção {direction}.")
+        print(f"Interaction to {action} on direction {direction}.")
         
         if action == "open":
             return ("bool", True, False)
@@ -245,6 +242,7 @@ class InteractBlock(Node):
             return ("bool", True, False)
         
         return ("bool", False, False)
+
 
 class AssignmentBlock(Node):
     def evaluate(self, st):
@@ -275,6 +273,7 @@ class SequenceBlock(Node):
         st.create(sequence_name, ("sequence", self, True))
 
         return None
+
 
 class SequenceCall(Node):
     def evaluate(self, st):
@@ -313,6 +312,7 @@ class ConditionalBlock(Node):
 
         return None
 
+
 class CollectableCondition(Node):
     def evaluate(self, st):
         identifier_node = self.children[0]
@@ -350,7 +350,7 @@ class ObjectCondition(Node):
         relational_bool = self.children[1].value
         object_target = self.children[2].value
 
-        print(f"Verificando se o objeto em '{direction}' '{relational_bool}' '{object_target}'. (Simulado)")
+        print(f"Verifying if object at '{direction}' '{relational_bool}' '{object_target}'.")
         
         simulated_result = True
         
@@ -378,11 +378,12 @@ class LoopBlock(Node):
 
         return None
 
+
 class CollectCommand(Node):
     def evaluate(self, st):
         collectable = self.children[0].value
         direction = self.children[1].value
-        print(f"Coletando '{collectable}' na direção {direction}.")
+        print(f"Collecting '{collectable}' in direction '{direction}'.")
         
         item_name = collectable
 
@@ -391,16 +392,22 @@ class CollectCommand(Node):
 
             if current_count_tuple[0] == "int":
                 st.set(item_name, ("int", current_count_tuple[1] + 1, False))
-                print(f"  {item_name} agora é: {st.get(item_name)[1]}")
+                print(f"{item_name} now is: {st.get(item_name)[1]}")
 
             else:
                 raise Exception(f"Erro: '{item_name}' não é um tipo numérico para coletar.")
             
         except Exception:
             st.create(item_name, ("int", 1, False))
-            print(f"  Primeiro '{item_name}' coletado!")
+            print(f"First '{item_name}' collected!")
             
         return None
+
+
+class RootProgramNode(Node):
+    def evaluate(self, st: SymbolTable):
+        for child in self.children:
+            child.evaluate(st)
 
 
 class Parser:
@@ -531,14 +538,7 @@ class Parser:
             raise Exception(f"Erro de sintaxe: Esperado EOF, mas encontrado '{Parser.tokenizer.next.type}' ('{Parser.tokenizer.next.value}')")
 
         return RootProgramNode(None, program_statements)
-
-
-class RootProgramNode(Node): # Uma classe simples para o nó raiz do programa
-    def evaluate(self, st: SymbolTable):
-        for statement_node in self.children:
-            statement_node.evaluate(st)
-
-
+    
     @staticmethod
     def parse_movement_block() -> MovementBlock:
         Parser.tokenizer.select_next()
@@ -754,15 +754,15 @@ class RootProgramNode(Node): # Uma classe simples para o nó raiz do programa
     def parse_collect_command() -> CollectCommand:
         Parser.tokenizer.select_next()
 
-        if Parser.tokenizer.next.type != "collectable":
-            raise Exception("Erro de sintaxe: Esperado COLLECTABLE após 'collect'")
+        if Parser.tokenizer.next.type != "iden":
+            raise Exception("Erro de sintaxe: Esperado IDENTIFICADOR (key, coins, card) após 'collect'")
         
         collectable_token = Parser.tokenizer.next
 
         Parser.tokenizer.select_next()
 
         if Parser.tokenizer.next.type != "direction":
-            raise Exception("Erro de sintaxe: Esperado DIREÇÃO após COLLECTABLE")
+            raise Exception("Erro de sintaxe: Esperado DIREÇÃO após coletável")
         
         direction_token = Parser.tokenizer.next
 
@@ -784,20 +784,13 @@ class RootProgramNode(Node): # Uma classe simples para o nó raiz do programa
 
 
 def main():
-    if len(sys.argv) != 2:
-        print("Uso: python compiler.py <nome_arquivo>")
-        sys.exit(1)
-
     filename = sys.argv[1]
 
-    try:
-        ast = Parser.run(filename)
-        st = SymbolTable()
-        ast.evaluate(st=st)
-    except Exception as e:
-        print(f"Erro: {e}")
-        sys.exit(1)
+    st = SymbolTable()
 
+    ast = Parser.run(filename)
+
+    ast.evaluate(st=st)
 
 if __name__ == "__main__":
     main()

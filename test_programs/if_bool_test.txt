@@ -1,0 +1,8 @@
+enter
+minha_condicao = interact open right
+if minha_condicao:
+    move up 1
+else:
+    move down 1
+conditional end
+program end
