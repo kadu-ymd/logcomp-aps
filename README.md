@@ -11,9 +11,9 @@ A linguagem desenvolvida nesse projeto é uma representação em código das ins
 ## EBNF
 
 ```ebnf
-PROGRAM = "enter", "\n", { STATEMENT }, "end", [ "\n" ];
+PROGRAM = "enter", "\n", { STATEMENT }, "program", "end", [ "\n" ];
 
-STATEMENT = ( λ | MOVEMENT_BLOCK | INTERACT_BLOCK | SEQUENCE_BLOCK | CONDITIONAL_BLOCK | LOOP_BLOCK | ASSIGNMENT_BLOCK | COLLECT_COMMAND ), "\n";
+STATEMENT = ( MOVEMENT_BLOCK | INTERACT_BLOCK | SEQUENCE_BLOCK | CONDITIONAL_BLOCK | LOOP_BLOCK | ASSIGNMENT_BLOCK | COLLECT_COMMAND | SEQUENCE_CALL ), "\n";
 
 ASSIGNMENT_BLOCK = IDENTIFIER, "=", INTERACT_BLOCK;
 
@@ -23,9 +23,11 @@ INTERACT_BLOCK = "interact", ( "open" | "collect" ), DIRECTION;
 
 SEQUENCE_BLOCK = "define", "sequence", IDENTIFIER, ":", "\n", { STATEMENT }, "sequence", "end";
 
+SEQUENCE_CALL = IDENTIFIER;
+
 CONDITIONAL_BLOCK = "if", IF_CONDITION, ":", "\n", { STATEMENT }, "else", ":", "\n", { STATEMENT }, "conditional", "end";
 
-IF_CONDITION = ( COLLECTABLE_CONDITION | OBJECT_CONDITION );
+IF_CONDITION = ( COLLECTABLE_CONDITION | OBJECT_CONDITION | BOOLEAN_LITERAL | IDENTIFIER | "(", IF_CONDITION, ")" );
 
 COLLECTABLE_CONDITION = IDENTIFIER, RELATIONAL_OPERATOR, VALUE;
 
@@ -35,9 +37,9 @@ OBJECT_CONDITION_END = ( INTERACTABLE | STATE );
 
 LOOP_BLOCK = "while", LOOP_CONDITION, ":", "\n", { STATEMENT }, "loop", "end";
 
-LOOP_CONDITION = ( COLLECTABLE_CONDITION | OBJECT_CONDITION );
+LOOP_CONDITION = ( COLLECTABLE_CONDITION | OBJECT_CONDITION | BOOLEAN_LITERAL | IDENTIFIER | "(", LOOP_CONDITION, ")" );
 
-COLLECT_COMMAND = "collect", COLLECTABLE, VALUE;
+COLLECT_COMMAND = "collect", COLLECTABLE, DIRECTION;
 
 RELATIONAL_BOOL = ( "is" | "is_not" );
 
@@ -45,7 +47,7 @@ RELATIONAL_OPERATOR = ( ">" | "<" | ">=" | "<=" | "==" | "!=" );
 
 IDENTIFIER = LETTER, { LETTER | DIGIT | "_" };
 
-VALUE = DIGIT, { DIGIT };
+VALUE = ( DIGIT, { DIGIT } | IDENTIFIER );
 
 DIRECTION = ( "up" | "right" | "down" | "left" );
 
@@ -54,6 +56,8 @@ COLLECTABLE = ( "key" | "coins" | "card" );
 INTERACTABLE = ( "locker" | "closet" | "desk" | "exit_door" );
 
 STATE = ( "locked" | "unlocked" );
+
+BOOLEAN_LITERAL = ( "true" | "false" );
 
 LETTER = ( a | ... | z | A | ... | Z );
 

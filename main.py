@@ -4,37 +4,32 @@ import re
 
 VAR_PATTERN = "[a-zA-Z]([a-zA-Z]|_|[0-9])*"
 
-DIRECTION = ["up", "right", "down", "left"]
-
-RELATIONAL_BOOL = ["is", "is_not"]
-
-COLLECTABLE = ["key", "coins", "card"]
-
-INTERACTABLE = ["locker", "closet", "desk", "exit_door"]
-
-STATE = ["locked", "unlocked"]
-
-RESERVED_WORDS = ["enter", "end", "end_program", "if", "else", "move", "interact", "open", "collect", "define", "sequence", "conditional", "object", "while", "loop", "is", "is_not", "up", "right", "down", "left", "key", "coins", "card", "locker", "closet", "desk", "exit_door", "locked", "unlocked", "program"]
+RESERVED_WORDS = ["enter", "program", "end", "move", "interact", "define", "sequence", "conditional", "loop", "while", "collect",
+                  "up", "right", "down", "left", "key", "coins", "card", "locker", "closet", "desk", "exit_door", "locked", "unlocked",
+                  "is", "is_not", "object", "else", "if", "true", "false"]
 
 
 class SymbolTable:
-    def __init__(self, parent = None):
+    def __init__(self, parent=None):
         self.table = dict()
         self.parent = parent
 
     def create(self, key: str, value):
         if key not in self.table:
             self.table[key] = value
+            
         else:
-            raise Exception(f"Variable '{key}' already declared")
+            raise Exception(f"Variável '{key}' já declarada.")
 
     def get(self, key):
         if key in self.table:
             return self.table[key]
+        
         elif self.parent is not None:
             return self.parent.get(key)
+        
         else:
-            raise Exception(f"Variable '{key}' not defined")
+            raise Exception(f"Variável '{key}' não definida.")
 
     def set(self, key, value):
         if key in self.table:
@@ -42,7 +37,7 @@ class SymbolTable:
         elif self.parent is not None:
             self.parent.set(key, value)
         else:
-            raise Exception(f"Variable '{key}' not declared")
+            raise Exception(f"Variável '{key}' não declarada.")
 
 
 class Token:
@@ -58,122 +53,116 @@ class PrePro:
             lines = f.readlines()
 
         aux = [re.sub("//.*", "", line) for line in lines]
-
         aux1 = [re.sub(r"\t+", "", line).strip(" ") for line in aux]
 
         return "".join(aux1)
 
 
 class Tokenizer:
+
     def __init__(self, source: str, position: int, next: Token):
         self.source = source
         self.position = position
         self.next = next
 
     def select_next(self):
-        """Gets the next Token at the target file.
-        """
         value = []
-
-        # While not EOF, tries to define a Token
+        
         if self.position != len(self.source):
-            # Ignore blank spaces
-            while (self.source[self.position] == " "):
+            while self.position < len(self.source) and self.source[self.position] == " ":
                 self.position += 1
 
-            # Iterate through the file characters
-            for i in range(self.position, len(self.source) + 1):
-                self.position = i
+            if self.position == len(self.source):
+                self.next = Token("EOF", None)
+                return
 
-                if (self.source[i].isdigit() or self.source[i].isalpha()
-                        or self.source[i] == "_"):
-                    value.append(self.source[i])
-                else:
-                    break
+            temp_pos = self.position
+            while temp_pos < len(self.source) and \
+                    (self.source[temp_pos].isdigit() or self.source[temp_pos].isalpha() or self.source[temp_pos] == "_"):
+                value.append(self.source[temp_pos])
+                temp_pos += 1
 
-            try:
-                # If list "value" is empty, no alphanumeric + underscore characters were found in the current Token
-                if not len(value):
-                    # Assignment
-                    if (self.source[self.position] == "="):
-                        self.next = Token("assignment", "=")
+            self.position = temp_pos
 
-                    # Line break
-                    if (self.source[self.position] == "\n"):
-                        self.next = Token("line_break", None)
+            val = "".join(value)
 
-                    # Relational operators
-                    ## Greater than
-                    if (self.source[self.position] == ">"):
-                        self.next = Token("gt", None)
-                        self.position += 1
-
-                    ## Less than
-                    if (self.source[self.position] == "<"):
-                        self.next = Token("lt", None)
-                        self.position += 1
-
-                    ## Greater equal than
-                    if (self.source[self.position:self.position + 2] == ">="):
-                        self.next = Token("ge", None)
-                        self.position += 1
-
-                    ## Less equal than
-                    if (self.source[self.position:self.position + 2] == "<="):
-                        self.next = Token("le", None)
-                        self.position += 1
-
-                    ## Equal to
-                    if (self.source[self.position:self.position + 2] == "=="):
-                        self.next = Token("equal", None)
-                        self.position += 1
-
-                    self.position += 1
-
-                # Else, it means that the Token is a identifier, reserved word or a number
-                else:
-                    val = "".join(value)
-
-                    # Matches the regex pattern (not a number)
-                    if re.match(VAR_PATTERN, val, flags=0):
-                        # Identifier
-                        if val not in RESERVED_WORDS:
-                            self.next = Token("iden", val)
-
-                        # Direction
-                        elif val in DIRECTION:
+            if len(val):
+                if re.match(VAR_PATTERN, val, flags=0):
+                    if val in RESERVED_WORDS:
+                        if val == "true":
+                            self.next = Token("bool", True)
+                        elif val == "false":
+                            self.next = Token("bool", False)
+                        elif val in ["up", "right", "down", "left"]:
                             self.next = Token("direction", val)
-
-                        # Collectable
-                        elif val in COLLECTABLE:
+                        elif val in ["key", "coins", "card"]:
                             self.next = Token("collectable", val)
-
-                        # Interactable
-                        elif val in INTERACTABLE:
+                        elif val in ["locker", "closet", "desk", "exit_door"]:
                             self.next = Token("interactable", val)
-
-                        # State
-                        elif val in STATE:
+                        elif val in ["locked", "unlocked"]:
                             self.next = Token("state", val)
-
-                        # Other word (reserved or not declared (results in error))
+                        elif val in ["is", "is_not"]:
+                            self.next = Token("relational_bool", val)
                         else:
                             self.next = Token(f"{val}", None)
-
-                    # Does NOT match the regex pattern (probably a number)
                     else:
-                        try:
-                            self.next = Token("int", int(val))
-                        except ValueError:
-                            raise Exception(f"Token inválido: {val}")
+                        self.next = Token("iden", val)
+                elif val.isdigit():
+                    self.next = Token("int", int(val))
+                else:
+                    raise Exception(f"Token inválido: {val}")
+            else:
+                if self.position >= len(self.source):
+                    self.next = Token("EOF", None)
+                    return
+                
+                char = self.source[self.position]
+                next_char = self.source[self.position+1] if self.position + 1 < len(self.source) else ''
 
-            except Exception as e:
-                raise Exception(f"Erro -> {e}")
-
+                if char == "=":
+                    if next_char == "=":
+                        self.next = Token("relational_operator", "==")
+                        self.position += 1
+                    else:
+                        self.next = Token("assignment", "=")
+                elif char == ">":
+                    if next_char == "=":
+                        self.next = Token("relational_operator", ">=")
+                        self.position += 1
+                    else:
+                        self.next = Token("relational_operator", ">")
+                elif char == "<":
+                    if next_char == "=":
+                        self.next = Token("relational_operator", "<=")
+                        self.position += 1
+                    else:
+                        self.next = Token("relational_operator", "<")
+                elif char == "!":
+                    if next_char == "=":
+                        self.next = Token("relational_operator", "!=")
+                        self.position += 1
+                    else:
+                        raise Exception("Operador de negação '!' não esperado neste contexto.")
+                
+                elif char == ":":
+                    self.next = Token("colon", ":")
+                elif char == "\n":
+                    self.next = Token("line_break", None)
+                elif char == "{":
+                    self.next = Token("open_brack", "{")
+                elif char == "}":
+                    self.next = Token("close_brack", "}")
+                
+                elif char == "(":
+                    self.next = Token("open_par", "(")
+                elif char == ")":
+                    self.next = Token("close_par", ")")
+                
+                else:
+                    raise Exception(f"Caracter inválido: '{char}' na posição {self.position}")
+                self.position += 1
         else:
             self.next = Token("EOF", None)
-
-        # print(f"Token({self.next.type}, {self.next.value})")
 
 
 class Node:
@@ -181,7 +170,9 @@ class Node:
         self.value = value
         self.children = children
 
-    def evaluate(self, st: SymbolTable): ...
+    def evaluate(self, st: SymbolTable):
+        raise NotImplementedError
+
 
 class BinOp(Node):
     def evaluate(self, st):
@@ -190,93 +181,27 @@ class BinOp(Node):
         child_tuple_0 = child_0.evaluate(st)
         child_tuple_1 = child_1.evaluate(st)
 
-        if self.value == "+":
-            if child_tuple_0[0] == "int" and child_tuple_1[0] == "int":
-                return ("int", child_tuple_0[1] + child_tuple_1[1], False)
-            else:
-                return ("string", str(child_tuple_0[1]).lower() + str(child_tuple_1[1]).lower(), False)
+        if child_tuple_0[0] != "int" or child_tuple_1[0] != "int":
+             raise Exception(f"Erro de tipo: Condições com operadores relacionais (como {self.value}) devem comparar inteiros. Recebido {child_tuple_0[0]} e {child_tuple_1[0]}.")
 
-        if self.value == "-":
-            if child_tuple_0[0] == "int" and child_tuple_1[0] == "int":
-                return ("int", child_tuple_0[1] - child_tuple_1[1], False)
-            else:
-                raise Exception("erro de tipo -> precisa ser int (binop)")
+        if self.value == "==": return ("bool", child_tuple_0[1] == child_tuple_1[1], False)
 
-        if self.value == "*":
-            if child_tuple_0[0] == "int" and child_tuple_1[0] == "int":
-                return ("int", child_tuple_0[1] * child_tuple_1[1], False)
-            else:
-                raise Exception("erro de tipo -> precisa ser int (binop)")
+        if self.value == ">": return ("bool", child_tuple_0[1] > child_tuple_1[1], False)
 
-        if self.value == "/":
-            if child_tuple_0[0] == "int" and child_tuple_1[0] == "int":
-                return ("int", child_tuple_0[1] // child_tuple_1[1], False)
-            else:
-                raise Exception("erro de tipo -> precisa ser int (binop)")
+        if self.value == "<": return ("bool", child_tuple_0[1] < child_tuple_1[1], False)
 
-        if self.value == "&&":
-            if child_tuple_0[0] == "bool" and child_tuple_1[0] == "bool":
-                return ("bool", child_tuple_0[1] and child_tuple_1[1], False)
-            else:
-                raise Exception("erro de tipo -> precisa ser bool (binop)")
+        if self.value == ">=": return ("bool", child_tuple_0[1] >= child_tuple_1[1], False)
 
-        if self.value == "||":
-            if child_tuple_0[0] == "bool" and child_tuple_1[0] == "bool":
-                return ("bool", child_tuple_0[1] or child_tuple_1[1], False)
-            else:
-                raise Exception("erro de tipo -> precisa ser bool (binop)")
+        if self.value == "<=": return ("bool", child_tuple_0[1] <= child_tuple_1[1], False)
 
-        if self.value == ">":
-            if child_tuple_0[0] == child_tuple_1[0]:
-                return ("bool", child_tuple_0[1] > child_tuple_1[1], False)
-            else:
-                raise Exception("erro de tipo -> precisa ser igual (binop)")
-
-        if self.value == "<":
-            if child_tuple_0[0] == child_tuple_1[0]:
-                return ("bool", child_tuple_0[1] < child_tuple_1[1], False)
-            else:
-                raise Exception("erro de tipo -> precisa ser igual (binop)")
-
-        if self.value == "==":
-            if child_tuple_0[0] == child_tuple_1[0]:
-                return ("bool", child_tuple_0[1] == child_tuple_1[1], False)
-            else:
-                raise Exception("erro de tipo -> precisa ser igual (binop)")
+        if self.value == "!=": return ("bool", child_tuple_0[1] != child_tuple_1[1], False)
+        
+        raise Exception(f"Operador binário não suportado: {self.value}")
 
 
-class UnOp(Node):
-    def evaluate(self, st):
-        for child in self.children:
-            child_tuple = child.evaluate(st)
-
-            if self.value == "+":
-                if child_tuple[0] == "int":
-                    return (child_tuple[0], child_tuple[1])
-                else:
-                    raise Exception("Operator must be followed by an integer")
-
-            if self.value == "-":
-                if child_tuple[0] == "int":
-                    return (child_tuple[0], -child_tuple[1])
-                else:
-                    raise Exception("Operator must be followed by an integer")
-
-            if self.value == "!":
-                if child_tuple[0] == "bool":
-                    return (child_tuple[0], not child_tuple[1])
-                else:
-                    raise Exception("Operator must be followed by a boolean")
-
-# Nós para os tipos de variáveis
 class IntVal(Node):
     def evaluate(self, st):
         return ("int", self.value, False)
-
-
-class StrVal(Node):
-    def evaluate(self, st):
-        return ("string", self.value, False)
 
 
 class BoolVal(Node):
@@ -284,7 +209,9 @@ class BoolVal(Node):
         return ("bool", self.value, False)
 
 
-class NoOp(Node): ...
+class NoOp(Node):
+    def evaluate(self, st):
+        pass
 
 
 class Identifier(Node):
@@ -292,302 +219,557 @@ class Identifier(Node):
         try:
             return st.get(self.value)
         except Exception as e:
-            raise Exception(f"Error -> {e}")
+            raise Exception(f"Erro: {e}")
 
 
-class Assignment(Node):
+class MovementBlock(Node):
     def evaluate(self, st):
-        var_iden, val_node = self.children
+        direction = self.children[0].value
+        value = self.children[1].evaluate(st)[1]
 
-        node_eval = val_node.evaluate(st)
+        print(f"Movendo {direction} por {value} unidades.")
 
-        dec_type = st.get(key=var_iden) # verifica se a variável existe
+        return None
 
-        if node_eval[0] == dec_type[0]:
-            st.set(key=var_iden, value=node_eval)
+
+class InteractBlock(Node):
+    def evaluate(self, st):
+        action = self.children[0].value
+        direction = self.children[1].value
+        print(f"Interagindo para {action} na direção {direction}.")
+        
+        if action == "open":
+            return ("bool", True, False)
+        
+        elif action == "collect":
+            return ("bool", True, False)
+        
+        return ("bool", False, False)
+
+class AssignmentBlock(Node):
+    def evaluate(self, st):
+        var_iden_node = self.children[0]
+        interact_node = self.children[1]
+
+        var_name = var_iden_node.value
+        interaction_result = interact_node.evaluate(st) 
+        
+        try:
+            declared_type_info = st.get(var_name)
+
+            if interaction_result[0] != declared_type_info[0]:
+                raise Exception(f"Erro de tipo: Atribuição para '{var_name}' esperava '{declared_type_info[0]}', mas recebeu '{interaction_result[0]}'.")
+            
+            st.set(var_name, interaction_result)
+
+        except Exception:
+            st.create(var_name, interaction_result)
+        
+        return None
+
+
+class SequenceBlock(Node):
+    def evaluate(self, st):
+        sequence_name = self.value
+
+        st.create(sequence_name, ("sequence", self, True))
+
+        return None
+
+class SequenceCall(Node):
+    def evaluate(self, st):
+        sequence_declaration = st.get(self.value)
+
+        if sequence_declaration[2] and sequence_declaration[0] == "sequence":
+            st_chained = SymbolTable(st)
+
+            for statement_node in sequence_declaration[1].children:
+                statement_node.evaluate(st_chained)
+
+            return None
+        
         else:
-            raise Exception(f"valor da atribuição precisa ser o mesmo que foi declarado (assignment)")
+            raise Exception(f"'{self.value}' não é uma sequência definida.")
 
 
-class Block(Node):
+class ConditionalBlock(Node):
     def evaluate(self, st):
-        for child in self.children:
-            if isinstance(child, Return):
-                return child.evaluate(st)
+        condition_eval = self.children[0].evaluate(st)
+        
+        if condition_eval[0] != "bool":
+            raise Exception("Erro de tipo: IF_CONDITION deve retornar um booleano.")
+        
+        if condition_eval[1]:
+            st_chained = SymbolTable(st)
 
-            elif isinstance(child, Block):
-                st_chained = SymbolTable(st)
-                child.evaluate(st_chained)
+            for statement_node in self.children[1]:
+                statement_node.evaluate(st_chained)
 
-            elif isinstance(child, If):
-                return_value = child.evaluate(st)
+        else:
+            st_chained = SymbolTable(st)
 
-                if return_value != None:
-                    return return_value
+            for statement_node in self.children[2]:
+                statement_node.evaluate(st_chained)
 
-            elif isinstance(child, For):
-                return_value = child.evaluate(st)
+        return None
 
-                if return_value != None:
-                    return return_value
+class CollectableCondition(Node):
+    def evaluate(self, st):
+        identifier_node = self.children[0]
+        operator = self.children[1].value
+        value_node = self.children[2]
+
+        identifier_value_tuple = identifier_node.evaluate(st)
+        identifier_value = identifier_value_tuple[1]
+
+        value_eval_tuple = value_node.evaluate(st)
+        value = value_eval_tuple[1]
+
+        if identifier_value_tuple[0] != "int" or value_eval_tuple[0] != "int":
+            raise Exception(f"Erro de tipo: Condição com '{operator}' requer inteiros. Recebido {identifier_value_tuple[0]} e {value_eval_tuple[0]}.")
+
+        if operator == "==": return ("bool", identifier_value == value, False)
+
+        if operator == ">": return ("bool", identifier_value > value, False)
+
+        if operator == "<": return ("bool", identifier_value < value, False)
+
+        if operator == ">=": return ("bool", identifier_value >= value, False)
+
+        if operator == "<=": return ("bool", identifier_value <= value, False)
+
+
+        if operator == "!=": return ("bool", identifier_value != value, False)
+
+        return ("bool", False, False)
+
+
+class ObjectCondition(Node):
+    def evaluate(self, st):
+        direction = self.children[0].value
+        relational_bool = self.children[1].value
+        object_target = self.children[2].value
+
+        print(f"Verificando se o objeto em '{direction}' '{relational_bool}' '{object_target}'. (Simulado)")
+        
+        simulated_result = True
+        
+        if relational_bool == "is":
+            return ("bool", simulated_result, False)
+        elif relational_bool == "is_not":
+            return ("bool", not simulated_result, False)
+        return ("bool", False, False)
+
+
+class LoopBlock(Node):
+    def evaluate(self, st):
+        condition_node = self.children[0]
+        
+        condition_eval_result = condition_node.evaluate(st)
+
+        if condition_eval_result[0] != "bool":
+            raise Exception("Erro de tipo: LOOP_CONDITION deve retornar um booleano.")
+
+        while condition_node.evaluate(st)[1]:
+            st_chained = SymbolTable(st)
+
+            for statement_node in self.children[1]:
+                statement_node.evaluate(st_chained)
+
+        return None
+
+class CollectCommand(Node):
+    def evaluate(self, st):
+        collectable = self.children[0].value
+        direction = self.children[1].value
+        print(f"Coletando '{collectable}' na direção {direction}.")
+        
+        item_name = collectable
+
+        try:
+            current_count_tuple = st.get(item_name)
+
+            if current_count_tuple[0] == "int":
+                st.set(item_name, ("int", current_count_tuple[1] + 1, False))
+                print(f"  {item_name} agora é: {st.get(item_name)[1]}")
 
             else:
-                child.evaluate(st)
-
-
-class For(Node):
-    def evaluate(self, st):
-        _type, _, _ = self.children[0].evaluate(st)
-        return_value = None
-
-        if _type != "bool":
-            raise Exception(f"Incompatible type for condition (-> {_type}) in for-loop")
-
-        while self.children[0].evaluate(st)[1]:
-            return_value = self.children[1].evaluate(st)
-
-            if return_value != None:
-                return return_value
-
-
-class If(Node):
-    def evaluate(self, st):
-        _type, cond, _ = self.children[0].evaluate(st)
-        return_value = None
-
-        if _type != "bool":
-            raise Exception(f"Incompatible type for condition -> {_type} in if-clause")
-
-        if len(self.children) == 3:
-            if cond:
-                return_value = self.children[1].evaluate(st) # bloco de código do if
-
-                if return_value != None: return return_value
-            else:
-                return_value = self.children[2].evaluate(st) # bloco de código do else
-
-                if return_value != None: return return_value
-        else:
-            if cond:
-                return_value = self.children[1].evaluate(st) # bloco de código do if
-
-                if return_value != None: return return_value
-
-
-class VarDec(Node):
-    def evaluate(self, st):
-        var_identifier = self.children[0].value
-        vardec_type = self.value
-
-        if len(self.children) > 1:
-            var_type, var_value, _ = self.children[1].evaluate(st) # evaluate do BinOp
-
-            if vardec_type == var_type:
-                st.create(key=var_identifier, value=(var_type, var_value, False))
-
-            else:
-                raise Exception("tipos incompatíveis -> declaração de variáveis (vardec)")
-        else:
-            st.create(key=var_identifier, value=(vardec_type, None, False))
-
-
-class FuncDec(Node):
-    def evaluate(self, st):
-        return st.create(self.children[0], (self.value, self, True))
-
-
-class FuncCall(Node):
-    def evaluate(self, st):
-        func_declaration = st.get(self.value) # VERIFY IF FUNCTION WAS DECLARED
-
-        if func_declaration[2]: # IS FUNCTION?
-            node_funcdec = func_declaration[1] # REFERENCE TO FUNCDEC NODE
-
-            if len(node_funcdec.children) - 2 == len(self.children): # VERIFY NUMBER OF ARGUMENTS IN FUNCDEC (funcdec.children - 2) AND FUNCCALL (self.children)
-                st_chained = SymbolTable(st)
-
-                funcdec_arguments = node_funcdec.children[1:-1]
-
-                for i in range(len(self.children)): # ITERATE OVER ARGUMENTS
-                    call_arg = self.children[i].evaluate(st)
-                    declaration_arg = funcdec_arguments[i]
-
-                    if call_arg[0] == declaration_arg.value:
-                        st_chained.create(declaration_arg.children[0], (declaration_arg.value, call_arg[1], False))
-
-                node_block = node_funcdec.children[-1]
-
-                return_value = node_block.evaluate(st_chained) # EVALUATES BLOCK FROM FUNCDEC
-
-                if return_value == None and func_declaration[0] != None:
-                    raise Exception(f"Function expected return type '{func_declaration[0]}', not 'void'")
-
-                elif return_value != None and return_value[0] != func_declaration[0]:
-                    raise Exception(f"Function expected return type '{func_declaration[0]}', not '{return_value[0]}'")
-
-                elif return_value != None:
-                    return return_value
-
-
-class Return(Node):
-    def evaluate(self, st):
-        return self.children[0].evaluate(st)
-
-
-# New nodes
-class Program(Node):
-    def evaluate(self, st):
-        for child in self.children:
-            child.evaluate()
-
-
-class Movement(Node):
-    # First child -> direction
-    # Second child -> value
-    def evaluate(self, st):
-        ...
-
-
-class Interact(Node):
-    def evaluate(self, st):
-        return super().evaluate(st)
-    
-
-class Collect(Node):
-    def evaluate(self, st):
-        return super().evaluate(st)
-
-
-class Direction(Node):
-    def evaluate(self, st):
-        return self.value
-
-
-class StepValue(Node):
-    def evaluate(self, st):
-        return self.value
-
-
-class Action(Node):
-    def evaluate(self, st):
-        return self.value
-
-
-class Collectable(Node):
-    def evaluate(self, st):
-        return super().evaluate(st)
+                raise Exception(f"Erro: '{item_name}' não é um tipo numérico para coletar.")
+            
+        except Exception:
+            st.create(item_name, ("int", 1, False))
+            print(f"  Primeiro '{item_name}' coletado!")
+            
+        return None
 
 
 class Parser:
     tokenizer: Tokenizer
 
     @staticmethod
-    def parse_program():
-        node = Program(None, [])
+    def parse_factor() -> Node:
+        node = NoOp(None, [])
 
-        if Parser.tokenizer.next.type == "enter":
+        if Parser.tokenizer.next.type == "int":
+            node = IntVal(Parser.tokenizer.next.value, [])
+
             Parser.tokenizer.select_next()
 
-            if Parser.tokenizer.next.type == "line_break":
-                Parser.tokenizer.select_next()
+        elif Parser.tokenizer.next.type == "bool":
+            node = BoolVal(Parser.tokenizer.next.value, [])
 
-                while Parser.tokenizer.next.type != "program":
-                    node.children.append(Parser.parse_statement())
-
-                if Parser.tokenizer.next.type == "end":
-                    Parser.tokenizer.select_next()
-
-                    # Raises exception if no line break was found after "enter"
-                    if Parser.tokenizer.next.type != "line_break":
-                        raise Exception("'enter' keyword must be followed by a line break")
-                        
-            # Raises exception if no line break was found after "enter"
-            else:
-                raise Exception("'enter' keyword must be followed by a line break")
-
-        # Raises exception if program does NOT start with "enter"
-        else:
-            raise Exception("Program MUST start with 'enter' keyword")
+            Parser.tokenizer.select_next()
         
+        elif Parser.tokenizer.next.type == "iden":
+            node = Identifier(Parser.tokenizer.next.value, [])
+
+            Parser.tokenizer.select_next()
+        
+        elif Parser.tokenizer.next.type == "open_par":
+            Parser.tokenizer.select_next()
+
+            node = Parser.parse_if_condition()
+
+            if Parser.tokenizer.next.type != "close_par":
+                raise Exception("Erro de sintaxe: parênteses não fechados.")
+            
+            Parser.tokenizer.select_next()
+
+        else:
+            raise Exception(f"Erro de sintaxe: token inválido em fator: {Parser.tokenizer.next.type} ('{Parser.tokenizer.next.value}')")
+
         return node
 
     @staticmethod
     def parse_statement() -> Node:
-        node = Node(None, [])
+        node = NoOp(None, [])
 
-        if Parser.tokenizer.next.type == "move":
-            node = Movement(None, [])
-
-            Parser.tokenizer.select_next()
-
-            if Parser.tokenizer.next.type == "direction":
-                node.children.append(Direction(Parser.tokenizer.next.value, []))
-
-                Parser.tokenizer.select_next()
-
-                if Parser.tokenizer.next.type == "int":
-                    node.children.append(StepValue(Parser.tokenizer.next.value, []))
-
-                Parser.tokenizer.select_next()
-
-            else:
-                raise Exception(f"'{Parser.tokenizer.next.type}' is not a valid direction")
-
-        elif Parser.tokenizer.next.type == "interact":
-            node = Interact(None, [])
+        if Parser.tokenizer.next.type == "iden":
+            identifier_node = Identifier(Parser.tokenizer.next.value, [])
 
             Parser.tokenizer.select_next()
 
-            if Parser.tokenizer.next.type == "open" or Parser.tokenizer.next.type == "collect":
-                node.children.append(Action(Parser.tokenizer.next.type, []))
-                
+            if Parser.tokenizer.next.type == "assignment":
                 Parser.tokenizer.select_next()
 
-                if Parser.tokenizer.next.type == "direction":
-                    node.children.append(Direction(Parser.tokenizer.next.type, []))
-
-                    Parser.tokenizer.select_next()
+                if Parser.tokenizer.next.type == "interact":
+                    node = AssignmentBlock(None, [identifier_node, Parser.parse_interact_block()])
 
                 else:
-                    raise Exception(f"'{Parser.tokenizer.next.value}' is not a valid direction")
+                    raise Exception(f"Erro de sintaxe: Atribuição inesperada. Somente 'IDENTIFIER = INTERACT_BLOCK' é permitido. Encontrado '{Parser.tokenizer.next.type}'.")
             
+            elif Parser.tokenizer.next.type == "line_break":
+                 node = SequenceCall(identifier_node.value, [])
+
             else:
-                raise Exception(f"'{Parser.tokenizer.next.type}' is not a valid action")
+                 raise Exception(f"Erro de sintaxe: Uso inesperado de identificador. Esperado '=', ou quebra de linha para chamada de sequência. Encontrado '{Parser.tokenizer.next.type}'.")
 
-        elif Parser.tokenizer.next.type == "collect":
-            node = Collect(None, [])
+        elif Parser.tokenizer.next.type == "move":
+            node = Parser.parse_movement_block()
 
-            Parser.tokenizer.select_next()
-
-            if Parser.tokenizer.next.type == "collectable":
-                node.children.append(Collectable(Parser.tokenizer.next.value, []))
-
-                Parser.tokenizer.select_next()
-
-                if Parser.tokenizer.next.type == "direction":
-                    node.children.append(Direction(Parser.tokenizer.next.value, []))
-                    
-                    Parser.tokenizer.select_next()
+        elif Parser.tokenizer.next.type == "interact":
+            node = Parser.parse_interact_block()
 
         elif Parser.tokenizer.next.type == "define":
-            node = FuncDec(None, [])
+            node = Parser.parse_sequence_block()
 
         elif Parser.tokenizer.next.type == "if":
-            ...
+            node = Parser.parse_conditional_block()
 
         elif Parser.tokenizer.next.type == "while":
-            ...
+            node = Parser.parse_loop_block()
 
-        elif Parser.tokenizer.next.type == "iden":
-            ...
-
+        elif Parser.tokenizer.next.type == "collect":
+            node = Parser.parse_collect_command()
+        
         else:
             node = NoOp(None, [])
 
-        Parser.tokenizer.select_next()
+
+        if isinstance(node, NoOp) and Parser.tokenizer.next.type != "line_break":
+            raise Exception(f"Erro de sintaxe: Token inesperado '{Parser.tokenizer.next.type}' ('{Parser.tokenizer.next.value}').")
         
+        elif not isinstance(node, NoOp) and Parser.tokenizer.next.type != "line_break":
+            raise Exception(f"Erro de sintaxe: Statement deve terminar com uma quebra de linha. Encontrado '{Parser.tokenizer.next.type}' ('{Parser.tokenizer.next.value}') em vez disso.")
+        
+        if Parser.tokenizer.next.type == "line_break":
+            Parser.tokenizer.select_next()
+
         return node
 
+    @staticmethod
+    def parse_program() -> Node:
+        program_statements = []
+
+        if Parser.tokenizer.next.type != "enter":
+            raise Exception("Erro de sintaxe: Programa deve começar com 'enter'")
+        
+        Parser.tokenizer.select_next()
+
+        if Parser.tokenizer.next.type != "line_break":
+            raise Exception("Erro de sintaxe: Esperado quebra de linha após 'enter'")
+        
+        Parser.tokenizer.select_next()
+
+        while Parser.tokenizer.next.type not in ["program", "EOF"]:
+            program_statements.append(Parser.parse_statement())
+
+        if Parser.tokenizer.next.type != "program":
+            raise Exception("Erro de sintaxe: Esperado palavra-chave 'program'")
+        
+        Parser.tokenizer.select_next()
+
+        if Parser.tokenizer.next.type != "end":
+            raise Exception("Erro de sintaxe: Esperado palavra-chave 'end'")
+        
+        Parser.tokenizer.select_next()
+
+        if Parser.tokenizer.next.type == "line_break":
+            Parser.tokenizer.select_next()
+        
+        if Parser.tokenizer.next.type != "EOF":
+            raise Exception(f"Erro de sintaxe: Esperado EOF, mas encontrado '{Parser.tokenizer.next.type}' ('{Parser.tokenizer.next.value}')")
+
+        return RootProgramNode(None, program_statements)
+
+
+class RootProgramNode(Node): # Uma classe simples para o nó raiz do programa
+    def evaluate(self, st: SymbolTable):
+        for statement_node in self.children:
+            statement_node.evaluate(st)
+
+
+    @staticmethod
+    def parse_movement_block() -> MovementBlock:
+        Parser.tokenizer.select_next()
+
+        if Parser.tokenizer.next.type != "direction":
+            raise Exception("Erro de sintaxe: Esperado DIREÇÃO após 'move'")
+        
+        direction_token = Parser.tokenizer.next
+
+        Parser.tokenizer.select_next()
+
+        value_node = Parser.parse_factor()
+
+        return MovementBlock(None, [direction_token, value_node])
+
+    @staticmethod
+    def parse_interact_block() -> InteractBlock:
+        Parser.tokenizer.select_next()
+
+        if Parser.tokenizer.next.value not in ["open", "collect"]:
+            raise Exception("Erro de sintaxe: Esperado 'open' ou 'collect' após 'interact'")
+        
+        action_token = Parser.tokenizer.next
+
+        Parser.tokenizer.select_next()
+
+        if Parser.tokenizer.next.type != "direction":
+            raise Exception("Erro de sintaxe: Esperado DIREÇÃO após ação de 'interact'")
+        
+        direction_token = Parser.tokenizer.next
+
+        Parser.tokenizer.select_next()
+
+        return InteractBlock(None, [action_token, direction_token])
+
+    @staticmethod
+    def parse_sequence_block() -> SequenceBlock:
+        Parser.tokenizer.select_next()
+
+        if Parser.tokenizer.next.type != "sequence":
+            raise Exception("Erro de sintaxe: Esperado 'sequence' após 'define'")
+        
+        Parser.tokenizer.select_next()
+
+        if Parser.tokenizer.next.type != "iden":
+            raise Exception("Erro de sintaxe: Esperado IDENTIFICADOR após 'sequence'")
+        
+        sequence_name = Parser.tokenizer.next.value
+
+        Parser.tokenizer.select_next()
+
+        if Parser.tokenizer.next.type != "colon":
+            raise Exception("Erro de sintaxe: Esperado ':' após identificador da sequência")
+        
+        Parser.tokenizer.select_next()
+
+        if Parser.tokenizer.next.type != "line_break":
+            raise Exception("Erro de sintaxe: Esperado nova linha após ':' na definição de sequência")
+        
+        Parser.tokenizer.select_next()
+
+        statements = []
+        while Parser.tokenizer.next.type != "sequence":
+            statements.append(Parser.parse_statement())
+        
+        Parser.tokenizer.select_next()
+
+        if Parser.tokenizer.next.type != "end":
+            raise Exception("Erro de sintaxe: Esperado 'end' após 'sequence' tag")
+        
+        Parser.tokenizer.select_next()
+
+        return SequenceBlock(sequence_name, statements)
+    
+    @staticmethod
+    def parse_conditional_block() -> ConditionalBlock:
+        Parser.tokenizer.select_next()
+        
+        condition_node = Parser.parse_if_condition()
+        
+        if Parser.tokenizer.next.type != "colon":
+            raise Exception("Erro de sintaxe: Esperado ':' após IF_CONDITION")
+        
+        Parser.tokenizer.select_next()
+
+        if Parser.tokenizer.next.type != "line_break":
+            raise Exception("Erro de sintaxe: Esperado nova linha após ':' no bloco condicional")
+        
+        Parser.tokenizer.select_next()
+
+        if_statements = []
+        while Parser.tokenizer.next.type != "else":
+            if_statements.append(Parser.parse_statement())
+        
+        Parser.tokenizer.select_next()
+
+        if Parser.tokenizer.next.type != "colon":
+            raise Exception("Erro de sintaxe: Esperado ':' após 'else'")
+        
+        Parser.tokenizer.select_next()
+
+        if Parser.tokenizer.next.type != "line_break":
+            raise Exception("Erro de sintaxe: Esperado nova linha após ':' no bloco 'else'")
+        
+        Parser.tokenizer.select_next()
+
+        else_statements = []
+        while Parser.tokenizer.next.type != "conditional":
+            else_statements.append(Parser.parse_statement())
+
+        Parser.tokenizer.select_next()
+
+        if Parser.tokenizer.next.type != "end":
+            raise Exception("Erro de sintaxe: Esperado 'end' após 'conditional' tag")
+        
+        Parser.tokenizer.select_next()
+
+        return ConditionalBlock(None, [condition_node, if_statements, else_statements])
+
+    @staticmethod
+    def parse_if_condition() -> Node:
+        if Parser.tokenizer.next.type == "object":
+            return Parser.parse_object_condition()
+        
+        current_pos = Parser.tokenizer.position
+        current_next = Parser.tokenizer.next
+        
+        temp_tokenizer = Tokenizer(Parser.tokenizer.source, current_pos, current_next)
+        temp_tokenizer.select_next()
+
+        if temp_tokenizer.next.type == "relational_operator":
+            return Parser.parse_collectable_condition()
+        
+        return Parser.parse_factor()
+
+    @staticmethod
+    def parse_collectable_condition() -> CollectableCondition:
+        if Parser.tokenizer.next.type != "iden":
+            raise Exception("Erro de sintaxe: Esperado IDENTIFICADOR para COLLECTABLE_CONDITION")
+        
+        identifier_node = Identifier(Parser.tokenizer.next.value, [])
+
+        Parser.tokenizer.select_next()
+        
+        if Parser.tokenizer.next.type != "relational_operator":
+            raise Exception("Erro de sintaxe: Esperado OPERADOR_RELACIONAL")
+        
+        operator_token = Parser.tokenizer.next
+
+        Parser.tokenizer.select_next()
+
+        value_node = Parser.parse_factor()
+
+        return CollectableCondition(None, [identifier_node, operator_token, value_node])
+
+    @staticmethod
+    def parse_object_condition() -> ObjectCondition:
+        Parser.tokenizer.select_next()
+
+        if Parser.tokenizer.next.type != "direction":
+            raise Exception("Erro de sintaxe: Esperado DIREÇÃO após 'object'")
+        
+        direction_token = Parser.tokenizer.next
+
+        Parser.tokenizer.select_next()
+        
+        if Parser.tokenizer.next.type != "relational_bool":
+            raise Exception("Erro de sintaxe: Esperado RELATIONAL_BOOL ('is' ou 'is_not')")
+        
+        relational_bool_token = Parser.tokenizer.next
+
+        Parser.tokenizer.select_next()
+
+        if Parser.tokenizer.next.type in ["interactable", "state"]:
+            object_target_token = Parser.tokenizer.next
+
+            Parser.tokenizer.select_next()
+        else:
+            raise Exception("Erro de sintaxe: Esperado INTERACTABLE ou STATE em OBJECT_CONDITION")
+
+        return ObjectCondition(None, [direction_token, relational_bool_token, object_target_token])
+
+    @staticmethod
+    def parse_loop_block() -> LoopBlock:
+        Parser.tokenizer.select_next()
+        
+        loop_condition_node = Parser.parse_if_condition()
+        
+        if Parser.tokenizer.next.type != "colon":
+            raise Exception("Erro de sintaxe: Esperado ':' após LOOP_CONDITION")
+        
+        Parser.tokenizer.select_next()
+
+        if Parser.tokenizer.next.type != "line_break":
+            raise Exception("Erro de sintaxe: Esperado nova linha após ':' no bloco de loop")
+        
+        Parser.tokenizer.select_next()
+
+        loop_statements = []
+        while Parser.tokenizer.next.type != "loop":
+            loop_statements.append(Parser.parse_statement())
+
+        Parser.tokenizer.select_next()
+
+        if Parser.tokenizer.next.type != "end":
+            raise Exception("Erro de sintaxe: Esperado 'end' após 'loop' tag")
+        
+        Parser.tokenizer.select_next()
+
+        return LoopBlock(None, [loop_condition_node, loop_statements])
+
+    @staticmethod
+    def parse_collect_command() -> CollectCommand:
+        Parser.tokenizer.select_next()
+
+        if Parser.tokenizer.next.type != "collectable":
+            raise Exception("Erro de sintaxe: Esperado COLLECTABLE após 'collect'")
+        
+        collectable_token = Parser.tokenizer.next
+
+        Parser.tokenizer.select_next()
+
+        if Parser.tokenizer.next.type != "direction":
+            raise Exception("Erro de sintaxe: Esperado DIREÇÃO após COLLECTABLE")
+        
+        direction_token = Parser.tokenizer.next
+
+        Parser.tokenizer.select_next()
+
+        return CollectCommand(None, [collectable_token, direction_token])
+    
     @staticmethod
     def run(filename):
         code = PrePro.filter(filename)
@@ -598,27 +780,23 @@ class Parser:
 
         ast = Parser.parse_program()
 
-        ast.children.append(FuncCall("main", []))
-
         return ast
 
 
 def main():
+    if len(sys.argv) != 2:
+        print("Uso: python compiler.py <nome_arquivo>")
+        sys.exit(1)
+
     filename = sys.argv[1]
 
-    code = PrePro.filter(filename)
-
-    Parser.tokenizer = Tokenizer(code, 0, Token("", ""))
-
-    Parser.tokenizer.select_next()
-
-    print(Parser.parse_program().children)
-
-    # ast = Parser.run(filename)
-
-    # st = SymbolTable()
-
-    # ast.evaluate(st=st)
+    try:
+        ast = Parser.run(filename)
+        st = SymbolTable()
+        ast.evaluate(st=st)
+    except Exception as e:
+        print(f"Erro: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
