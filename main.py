@@ -177,20 +177,11 @@ class Tokenizer:
 
 
 class Node:
-    id = 0
-
-    def generate_id() -> int:
-        Node.id += 1
-        return Node.id
-
     def __init__(self, value, children: list):
         self.value = value
         self.children = children
-        self.id = Node.generate_id()
 
     def evaluate(self, st: SymbolTable): ...
-
-    def generate(self, st: SymbolTable) -> None: ...
 
 class BinOp(Node):
     def evaluate(self, st):
@@ -457,11 +448,34 @@ class Movement(Node):
         ...
 
 
+class Interact(Node):
+    def evaluate(self, st):
+        return super().evaluate(st)
+    
+
+class Collect(Node):
+    def evaluate(self, st):
+        return super().evaluate(st)
+
+
 class Direction(Node):
     def evaluate(self, st):
-        ...
+        return self.value
 
-    def generate()
+
+class StepValue(Node):
+    def evaluate(self, st):
+        return self.value
+
+
+class Action(Node):
+    def evaluate(self, st):
+        return self.value
+
+
+class Collectable(Node):
+    def evaluate(self, st):
+        return super().evaluate(st)
 
 
 class Parser:
@@ -477,12 +491,8 @@ class Parser:
             if Parser.tokenizer.next.type == "line_break":
                 Parser.tokenizer.select_next()
 
-                print(Parser.tokenizer.next.type)
-
                 while Parser.tokenizer.next.type != "program":
-                    child_to_append = Parser.parse_statement()
-                    
-                    node.children.append(child_to_append)
+                    node.children.append(Parser.parse_statement())
 
                 if Parser.tokenizer.next.type == "end":
                     Parser.tokenizer.select_next()
@@ -510,27 +520,57 @@ class Parser:
 
             Parser.tokenizer.select_next()
 
-            if Parser.tokenizer.next.value in DIRECTION:
-                node.children.append(Parser.tokenizer.next.type)
+            if Parser.tokenizer.next.type == "direction":
+                node.children.append(Direction(Parser.tokenizer.next.value, []))
 
                 Parser.tokenizer.select_next()
 
                 if Parser.tokenizer.next.type == "int":
-                    node.children.append(IntVal(Parser.tokenizer.next.value, []))
+                    node.children.append(StepValue(Parser.tokenizer.next.value, []))
 
-                print(node.children)
+                Parser.tokenizer.select_next()
 
             else:
                 raise Exception(f"'{Parser.tokenizer.next.type}' is not a valid direction")
 
         elif Parser.tokenizer.next.type == "interact":
-            ...
+            node = Interact(None, [])
+
+            Parser.tokenizer.select_next()
+
+            if Parser.tokenizer.next.type == "open" or Parser.tokenizer.next.type == "collect":
+                node.children.append(Action(Parser.tokenizer.next.type, []))
+                
+                Parser.tokenizer.select_next()
+
+                if Parser.tokenizer.next.type == "direction":
+                    node.children.append(Direction(Parser.tokenizer.next.type, []))
+
+                    Parser.tokenizer.select_next()
+
+                else:
+                    raise Exception(f"'{Parser.tokenizer.next.value}' is not a valid direction")
+            
+            else:
+                raise Exception(f"'{Parser.tokenizer.next.type}' is not a valid action")
 
         elif Parser.tokenizer.next.type == "collect":
-            ...
-            
+            node = Collect(None, [])
+
+            Parser.tokenizer.select_next()
+
+            if Parser.tokenizer.next.type == "collectable":
+                node.children.append(Collectable(Parser.tokenizer.next.value, []))
+
+                Parser.tokenizer.select_next()
+
+                if Parser.tokenizer.next.type == "direction":
+                    node.children.append(Direction(Parser.tokenizer.next.value, []))
+                    
+                    Parser.tokenizer.select_next()
+
         elif Parser.tokenizer.next.type == "define":
-            ...
+            node = FuncDec(None, [])
 
         elif Parser.tokenizer.next.type == "if":
             ...
@@ -572,7 +612,7 @@ def main():
 
     Parser.tokenizer.select_next()
 
-    print(Parser.parse_program())
+    print(Parser.parse_program().children)
 
     # ast = Parser.run(filename)
 
