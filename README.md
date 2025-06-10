@@ -11,7 +11,7 @@ A linguagem desenvolvida nesse projeto é uma representação em código das ins
 ## EBNF
 
 ```ebnf
-PROGRAM = "enter", "\n", { STATEMENT }, "end", [ "\n" ], YYEOF;
+PROGRAM = "enter", "\n", { STATEMENT }, "end", [ "\n" ];
 
 STATEMENT = ( λ | MOVEMENT_BLOCK | INTERACT_BLOCK | SEQUENCE_BLOCK | CONDITIONAL_BLOCK | LOOP_BLOCK | ASSIGNMENT_BLOCK | COLLECT_COMMAND ), "\n";
 
@@ -37,7 +37,7 @@ LOOP_BLOCK = "while", LOOP_CONDITION, ":", "\n", { STATEMENT }, "loop", "end";
 
 LOOP_CONDITION = ( COLLECTABLE_CONDITION | OBJECT_CONDITION );
 
-COLLECT_COMMAND = "collect", COLLECTABLE, VALUE; // Adicionada se for um comando e não apenas parte de uma condição
+COLLECT_COMMAND = "collect", COLLECTABLE, VALUE;
 
 RELATIONAL_BOOL = ( "is" | "is not" );
 
