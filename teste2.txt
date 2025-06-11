@@ -1,4 +1,0 @@
-enter
-collect key right
-move up 10
-program end

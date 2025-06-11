@@ -1,6 +1,6 @@
 enter
 collect key up
-while key < 2:
+while key < 1:
     collect key up
     move up 1
 loop end
