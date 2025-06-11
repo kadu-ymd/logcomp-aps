@@ -11,13 +11,13 @@ A linguagem desenvolvida nesse projeto é uma representação em código das ins
 ## EBNF
 
 ```ebnf
-PROGRAM = "enter", "\n", { STATEMENT }, "program", "end", [ "\n" ];
+PROGRAM = "enter", "\n", { STATEMENT }, "program", "end", "EOF";
 
-STATEMENT = ( MOVEMENT_BLOCK | INTERACT_BLOCK | SEQUENCE_BLOCK | CONDITIONAL_BLOCK | LOOP_BLOCK | ASSIGNMENT_BLOCK | COLLECT_COMMAND | SEQUENCE_CALL ), "\n";
+STATEMENT = ( MOVEMENT_BLOCK | INTERACT_BLOCK | SEQUENCE_BLOCK | CONDITIONAL_BLOCK | LOOP_BLOCK | ASSIGNMENT_BLOCK | COLLECT_COMMAND | SEQUENCE_CALL ), "\n" | "EOF" | "program" | "end" ;
 
 ASSIGNMENT_BLOCK = IDENTIFIER, "=", INTERACT_BLOCK;
 
-MOVEMENT_BLOCK = "move", DIRECTION, VALUE;
+MOVEMENT_BLOCK = "move", DIRECTION, FACTOR;
 
 INTERACT_BLOCK = "interact", ( "open" | "collect" ), DIRECTION;
 
@@ -25,19 +25,17 @@ SEQUENCE_BLOCK = "define", "sequence", IDENTIFIER, ":", "\n", { STATEMENT }, "se
 
 SEQUENCE_CALL = IDENTIFIER;
 
-CONDITIONAL_BLOCK = "if", IF_CONDITION, ":", "\n", { STATEMENT }, "else", ":", "\n", { STATEMENT }, "conditional", "end";
+CONDITIONAL_BLOCK = "if", CONDITION, ":", "\n", { STATEMENT }, "else", ":", "\n", { STATEMENT }, "conditional", "end";
 
-IF_CONDITION = ( COLLECTABLE_CONDITION | OBJECT_CONDITION | BOOLEAN_LITERAL | IDENTIFIER | "(", IF_CONDITION, ")" );
+CONDITION = ( COLLECTABLE_CONDITION | OBJECT_CONDITION | FACTOR | "(", CONDITION, ")" );
 
-COLLECTABLE_CONDITION = IDENTIFIER, RELATIONAL_OPERATOR, VALUE;
+COLLECTABLE_CONDITION = ( COLLECTABLE | IDENTIFIER ), RELATIONAL_OPERATOR, FACTOR;
 
-OBJECT_CONDITION = "object", DIRECTION, RELATIONAL_BOOL, OBJECT_CONDITION_END;
+OBJECT_CONDITION = "object", DIRECTION, RELATIONAL_BOOL, OBJECT_TARGET;
 
-OBJECT_CONDITION_END = ( INTERACTABLE | STATE );
+OBJECT_TARGET = ( INTERACTABLE | STATE );
 
-LOOP_BLOCK = "while", LOOP_CONDITION, ":", "\n", { STATEMENT }, "loop", "end";
-
-LOOP_CONDITION = ( COLLECTABLE_CONDITION | OBJECT_CONDITION | BOOLEAN_LITERAL | IDENTIFIER | "(", LOOP_CONDITION, ")" );
+LOOP_BLOCK = "while", CONDITION, ":", "\n", { STATEMENT }, "loop", "end";
 
 COLLECT_COMMAND = "collect", COLLECTABLE, DIRECTION;
 
@@ -47,7 +45,9 @@ RELATIONAL_OPERATOR = ( ">" | "<" | ">=" | "<=" | "==" | "!=" );
 
 IDENTIFIER = LETTER, { LETTER | DIGIT | "_" };
 
-VALUE = ( DIGIT, { DIGIT } | IDENTIFIER );
+FACTOR = ( INT_LITERAL | BOOLEAN_LITERAL | IDENTIFIER | "(", CONDITION, ")" );
+
+INT_LITERAL = DIGIT, { DIGIT };
 
 DIRECTION = ( "up" | "right" | "down" | "left" );
 
@@ -59,9 +59,9 @@ STATE = ( "locked" | "unlocked" );
 
 BOOLEAN_LITERAL = ( "true" | "false" );
 
-LETTER = ( a | ... | z | A | ... | Z );
+LETTER = ( "a" | ... | "z" | "A" | ... | "Z" );
 
-DIGIT = ( 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 );
+DIGIT = ( "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" );
 ```
 
 ## Exemplos
