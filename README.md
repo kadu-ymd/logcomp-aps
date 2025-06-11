@@ -66,91 +66,87 @@ DIGIT = ( "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" );
 
 ## Exemplos
 
-Imaginando uma sala que possua o seguinte desenho:
+### Exemplo 1 - Sucesso ao escapar da sala
 
-![Mapa da sala de exemplo](img/map.png)
-
-Temos dois exemplos dos possíveis programas:
-
-### Exemplo 1
-
-#### Programa
-
-```
+```txt
 enter
-move right 5
-
-if object right is closet:
-    chave = interact collect right
-
-move down 6
-if object down is exit_door:
-    interact open down
-
-end
+move up 1
+interact open up
+collect key up
+move right 0
+interact open right
+program end
 ```
 
-#### Saída
+### Saída do exemplo 1
 
+```txt
+[COMPILER] Saída redirecionada para 'teste.txt'
+
+--- Compiling 'programas_teste/escape_success.txt' ---
+--- Compilation successful! AST generated. ---
+
+--- Initializing Escape Room VM ---
+
+--- Executing compiled program on VM ---
+
+--- Program execution finished. ---
+
+--- Game Status ---
+[GAME] Great job! You have successfully ESCAPED the room!
 ```
-Entrou na sala...
-Movimentou-se para a direita em 5 unidade(s)
 
-Interagiu com o armário e coletou uma chave
+### Exemplo 2 - Falha ao escapar da sala
 
-Movimentou-se para baixo em 6 unidade(s)
-
-Interagiu com a porta de saída
-
-Escapou da sala com sucesso!
-```
-
-### Exemplo 2
-
-#### Programa
-
-```
+```txt
 enter
-move right 4
-
-if object right is closet:
-    chave = interact collect right
-
-move right 1
-move down 6
-if object down is exit_door:
-    interact open down
-
-end
+move up 1
+interact open up
+collect key up
+move right 0
+interact open right
+program end
 ```
 
-#### Saída
+### Saída do exemplo 2
 
-```
-Entrou na sala...
-Movimentou-se para a direita em 4 unidade(s)
+```txt
+[COMPILER] Saída redirecionada para 'teste.txt'
 
-Tentou interagir com armário na direita, mas não encontrou nada...
+--- Compiling 'programas_teste/escape_fail.txt' ---
+--- Compilation successful! AST generated. ---
 
-Movimentou-se para a direita em 1 unidade(s)
+--- Initializing Escape Room VM ---
 
-Movimentou-se para baixo em 6 unidade(s)
+--- Executing compiled program on VM ---
 
-Interagiu com a porta de saída
+--- Program execution finished. ---
 
-Falha ao sair: não possui a chave necessária para abrir a porta...
+--- Game Status ---
+[GAME] You have NOT yet escaped the room.
+[GAME] Current player position: (0, 1)
+[GAME] Current inventory: {}
+[GAME] Keep trying to find the exit!
 ```
 
 ---
 
-### Teste
+## Teste
 
-Os comandos utilizados para compilar e testar a EBNF, utilizando o arquivo `teste.txt` foram, em sequência:
+Os comandos utilizados para compilar e testar a EBNF, utilizando os arquivos na pasta `programas_teste` foram, em sequência:
 
 ```
-flex lexer.l
+$ flex lexer.l
 
-bison -d parser.y
+$ bison -d parser.y
 
-gcc lex.yy.c parser.tab.c -o meu_analisador -lfl
+$ gcc lex.yy.c parser.tab.c -o meu_analisador -lfl
+```
+
+## Execução
+
+Para executar um determinado programa, é necessário executar a seguinte linha de comando:
+
+```
+$ python main.py <arquivo.txt> [arquivo_de_saida.txt]
 ```

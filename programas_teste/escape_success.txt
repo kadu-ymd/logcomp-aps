@@ -1,0 +1,7 @@
+enter
+move up 0
+interact open up
+collect key up
+move right 0
+interact open right
+program end

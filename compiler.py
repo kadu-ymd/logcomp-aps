@@ -274,7 +274,6 @@ class MovementBlock(Node):
     def evaluate(self, st):
         direction = self.children[0].evaluate(st)[1]
         value = self.children[1].evaluate(st)[1]
-        print(f"[COMPILER] Generating AST for: Move {direction} for {value} units.")
         return None
 
 
@@ -282,7 +281,6 @@ class InteractBlock(Node):
     def evaluate(self, st):
         action = self.children[0].evaluate(st)[1]
         direction = self.children[1].evaluate(st)[1]
-        print(f"[COMPILER] Generating AST for: Interact to {action} at direction {direction}.")
 
         return ("bool", False, False)
 
@@ -359,8 +357,6 @@ class CollectableCondition(Node):
     def evaluate(self, st):
         identifier_node = self.children[0]
 
-        print(identifier_node)
-
         operator_node = self.children[1]
         value_node = self.children[2]
 
@@ -385,8 +381,6 @@ class ObjectCondition(Node):
         direction = direction_node.evaluate(st)[1]
         relational_bool = relational_bool_node.evaluate(st)[1]
         object_target = object_target_node.evaluate(st)[1]
-
-        print(f"[COMPILER] Generating AST for: Verifying if object at '{direction}' '{relational_bool}' '{object_target}'.")
         
         return ("bool", False, False) 
 
@@ -415,8 +409,6 @@ class CollectCommand(Node):
 
         collectable_name = collectable_node.evaluate(st)[1]
         direction = direction_node.evaluate(st)[1]
-
-        print(f"[COMPILER] Generating AST for: Collecting '{collectable_name}' in direction '{direction}'.")
         
         item_name = collectable_name
 
@@ -436,7 +428,7 @@ class CollectCommand(Node):
 
 class RootProgramNode(Node):
     def evaluate(self, st: SymbolTable):
-        print("[COMPILER] Program AST generated successfully.")
+        pass
 
 
 class Parser:

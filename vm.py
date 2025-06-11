@@ -13,6 +13,8 @@ class EscapeRoomVM:
 
         self.inventory = {}
 
+        self.escaped = False
+
         self.room_objects = {
             "locker_up": {"type": "locker", "state": "locked", "content": "key"},
             "exit_door_right": {"type": "exit_door", "state": "locked", "requires": "key"},
@@ -81,6 +83,7 @@ class EscapeRoomVM:
                     if "key" in self.inventory and self.inventory["key"] > 0:
                         obj["state"] = "unlocked"
                         self.inventory["key"] -= 1
+                        self.escaped = True
                         self._print(f"[VM Result] The {object_name} is now unlocked! (Key used)")
                         self.display_room_state()
 
@@ -91,6 +94,7 @@ class EscapeRoomVM:
                     
                 elif obj["state"] == "unlocked":
                     self._print(f"[VM Result] The {object_name} is already unlocked. You escaped!")
+                    self.escaped = True
                     sys.exit(0) 
 
             elif obj["state"] == "locked":
