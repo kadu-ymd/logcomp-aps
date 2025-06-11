@@ -1,8 +1,19 @@
 %{
-#include "parser.tab.h"
+typedef struct AstNode {
+    char* type;
+    char* value_str;
+    int value_int;
+} AstNode;
+
+AstNode* create_node_str(const char* type, const char* value);
+AstNode* create_node_int(const char* type, int value);
+AstNode* create_node_keyword(const char* type);
+
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "parser.tab.h"
 
 int yywrap() {
     return 1;
@@ -14,12 +25,10 @@ extern int yyparse();
 extern int yylineno;
 
 %}
-
 DIGIT       [0-9]
 LETTER      [a-zA-Z]
 ID          {LETTER}({LETTER}|{DIGIT}|_)*
 %%
-
 "enter"             { return ENTER; }
 "program"           { return PROGRAM_KEYWORD; }
 "end"               { return END; }
@@ -35,10 +44,8 @@ ID          {LETTER}({LETTER}|{DIGIT}|_)*
 "while"             { return WHILE; }
 "loop"              { return LOOP; }
 "object"            { return OBJECT; }
-
 "true"              { yylval.num_bool = 1; return BOOL_LITERAL; }
 "false"             { yylval.num_bool = 0; return BOOL_LITERAL; }
-
 "is_not"            { return IS_NOT; }
 "is"                { return IS; }
 ">="                { return GE; }
@@ -48,19 +55,16 @@ ID          {LETTER}({LETTER}|{DIGIT}|_)*
 ">"                 { return GT; }
 "<"                 { return LT; }
 "="                 { return ASSIGN; }
-
 ":"                 { return COLON; }
-"\n"                { yylineno++; return NEWLINE; } // Incrementa o contador de linha
+"\n"                { yylineno++; return NEWLINE; }
 "{"                 { return LBRACE; }
 "}"                 { return RBRACE; }
 "("                 { return LPAREN; }
 ")"                 { return RPAREN; }
-
 "up"                { yylval.str = strdup(yytext); return DIRECTION; }
 "down"              { yylval.str = strdup(yytext); return DIRECTION; }
 "left"              { yylval.str = strdup(yytext); return DIRECTION; }
 "right"             { yylval.str = strdup(yytext); return DIRECTION; }
-
 "key"               { yylval.str = strdup(yytext); return COLLECTABLE; }
 "coins"             { yylval.str = strdup(yytext); return COLLECTABLE; }
 "card"              { yylval.str = strdup(yytext); return COLLECTABLE; }
@@ -77,8 +81,6 @@ ID          {LETTER}({LETTER}|{DIGIT}|_)*
 {ID}                { yylval.str = strdup(yytext); return IDENTIFIER; }
 
 [ \t\r]+            ;
-
-"//".* ;
 
 .                   { fprintf(stderr, "DEBUG FLEX: Caractere UNKNOWN: '%s' (0x%x) na linha %d\n", yytext, yytext[0], yylineno); return yytext[0]; }
 %%

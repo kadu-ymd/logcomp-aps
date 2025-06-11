@@ -3,8 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-extern int yylineno;
-
 typedef struct AstNode {
     char* type;
     char* value_str;
@@ -13,14 +11,16 @@ typedef struct AstNode {
 
 AstNode* create_node_str(const char* type, const char* value) {
     AstNode* node = (AstNode*) malloc(sizeof(AstNode));
+    if (!node) { perror("Failed to allocate AstNode"); exit(EXIT_FAILURE); }
     node->type = strdup(type);
-    node->value_str = strdup(value);
+    node->value_str = (value != NULL) ? strdup(value) : NULL;
     node->value_int = 0;
     return node;
 }
 
 AstNode* create_node_int(const char* type, int value) {
     AstNode* node = (AstNode*) malloc(sizeof(AstNode));
+    if (!node) { perror("Failed to allocate AstNode"); exit(EXIT_FAILURE); }
     node->type = strdup(type);
     node->value_str = NULL;
     node->value_int = value;
@@ -29,11 +29,14 @@ AstNode* create_node_int(const char* type, int value) {
 
 AstNode* create_node_keyword(const char* type) {
     AstNode* node = (AstNode*) malloc(sizeof(AstNode));
+    if (!node) { perror("Failed to allocate AstNode"); exit(EXIT_FAILURE); }
     node->type = strdup(type);
     node->value_str = NULL;
     node->value_int = 0;
     return node;
 }
+
+extern int yylineno;
 
 void yyerror(const char *s);
 int yylex(void);
@@ -55,26 +58,22 @@ extern FILE *yyin;
 %token ENTER PROGRAM_KEYWORD END MOVE INTERACT OPEN COLLECT_KEYWORD DEFINE SEQUENCE IF_KEYWORD ELSE CONDITIONAL WHILE LOOP OBJECT IS IS_NOT
 %token GE LE EQ NE GT LT
 %token ASSIGN COLON NEWLINE
+
 %token LBRACE RBRACE LPAREN RPAREN
 
-%type <node> program statements statement assignment_block movement_block interact_block sequence_block conditional_block condition collectable_condition object_target object_condition loop_block relational_bool relational_operator collect_command sequence_call factor
+%type <node> program statements statement assignment_block movement_block interact_block sequence_block conditional_block condition collectable_condition object_target object_condition loop_block relational_bool relational_operator collect_command sequence_call factor collectable_or_identifier multiple_newlines_optional
 
 %start program
 
 %%
 
 program:
-    ENTER NEWLINE statements PROGRAM_KEYWORD END optional_final_newline YYEOF
+    ENTER NEWLINE statements PROGRAM_KEYWORD END multiple_newlines_optional YYEOF
     { printf("DEBUG PARSER: Programa parseado com sucesso.\n"); YYACCEPT; }
     ;
 
-optional_final_newline:
-    /* vazio */
-    | NEWLINE
-    ;
-
 statements:
-    /* vazio */
+    /* vazio */ { $$ = NULL; }
     | statements statement
     ;
 
@@ -89,14 +88,19 @@ statement:
     | sequence_call NEWLINE         { $$ = $1; }
     ;
 
+multiple_newlines_optional:
+    /* vazio */ { $$ = NULL; }
+    | multiple_newlines_optional NEWLINE
+    ;
+
 assignment_block:
     IDENTIFIER ASSIGN interact_block
-    { printf("DEBUG PARSER: Assignment Block: %s = INTERACT_BLOCK\n", $1); $$ = create_node_str("ASSIGNMENT_BLOCK", $1); /* $3 é o nó do interact_block */ }
+    { printf("DEBUG PARSER: Assignment Block: %s = INTERACT_BLOCK\n", $1); $$ = create_node_str("ASSIGNMENT_BLOCK", $1); }
     ;
 
 movement_block:
     MOVE DIRECTION factor
-    { printf("DEBUG PARSER: Movement Block: move %s by value/iden\n", $2); $$ = create_node_str("MOVEMENT_BLOCK", $2); /* $3 é o nó do valor/iden */ }
+    { printf("DEBUG PARSER: Movement Block: move %s by value/iden\n", $2); $$ = create_node_str("MOVEMENT_BLOCK", $2); }
     ;
 
 interact_block:
@@ -107,13 +111,8 @@ interact_block:
     ;
 
 sequence_block:
-    DEFINE SEQUENCE IDENTIFIER COLON NEWLINE inner_statements SEQUENCE END
-    { printf("DEBUG PARSER: Sequence Block defined: %s\n", $3); $$ = create_node_str("SEQUENCE_BLOCK_DEF", $3); /* $6 é a lista de statements */ }
-    ;
-
-inner_statements:
-    /* vazio */
-    | inner_statements statement
+    DEFINE SEQUENCE IDENTIFIER COLON NEWLINE statements SEQUENCE END
+    { printf("DEBUG PARSER: Sequence Block defined: %s\n", $3); $$ = create_node_str("SEQUENCE_BLOCK_DEF", $3); }
     ;
 
 sequence_call:
@@ -122,31 +121,30 @@ sequence_call:
     ;
 
 conditional_block:
-    IF_KEYWORD condition COLON NEWLINE inner_statements ELSE COLON NEWLINE inner_statements CONDITIONAL END
-    { printf("DEBUG PARSER: Conditional Block parsed.\n"); $$ = create_node_keyword("CONDITIONAL_BLOCK"); /* Incluir $2, os statements do if e do else como filhos em um ASTNode mais complexo */ }
+    IF_KEYWORD condition COLON NEWLINE statements ELSE COLON NEWLINE statements CONDITIONAL END
+    { printf("DEBUG PARSER: Conditional Block parsed.\n"); $$ = create_node_keyword("CONDITIONAL_BLOCK"); }
     ;
 
 condition:
     collectable_condition       { $$ = $1; }
     | object_condition          { $$ = $1; }
     | factor                    { $$ = $1; }
-    | LPAREN condition RPAREN   { printf("DEBUG PARSER: Condition: Grouped\n"); $$ = $2; }
     ;
 
 collectable_condition:
-    (COLLECTABLE | IDENTIFIER) relational_operator factor
+    collectable_or_identifier relational_operator factor
     {
-        if ($1_type == COLLECTABLE) {
-            printf("DEBUG PARSER: Collectable Condition: COLLECTABLE (%s) %s factor\n", $1.str, ($2->value_str));
-            $$ = create_node_str("COLLECTABLE_CONDITION", $1.str);
-        } else {
-            printf("DEBUG PARSER: Collectable Condition: IDENTIFIER (%s) %s factor\n", $1.str, ($2->value_str));
-            $$ = create_node_str("COLLECTABLE_CONDITION", $1.str);
-        }
-        /* $2, $3 são nós */
+        printf("DEBUG PARSER: Collectable Condition: %s (%s) %s (%s) factor\n",
+               $1->type, ($1->value_str ? $1->value_str : "NULL"),
+               $2->type, ($2->value_str ? $2->value_str : "NULL"));
+        $$ = create_node_keyword("COLLECTABLE_CONDITION");
     }
     ;
 
+collectable_or_identifier:
+    COLLECTABLE { $$ = create_node_str("COLLECTABLE_TOKEN", $1); }
+    | IDENTIFIER { $$ = create_node_str("IDENTIFIER_TOKEN", $1); }
+    ;
 
 object_target:
     INTERACTABLE
@@ -157,12 +155,18 @@ object_target:
 
 object_condition:
     OBJECT DIRECTION relational_bool object_target
-    { printf("DEBUG PARSER: Object Condition: object %s %s %s\n", $2, ($3->value_str), ($4->value_str)); $$ = create_node_keyword("OBJECT_CONDITION"); /* $2, $3, $4 são nós */ }
+    {
+        printf("DEBUG PARSER: Object Condition: object %s %s (%s) %s (%s)\n",
+               $2,
+               $3->type, ($3->value_str ? $3->value_str : "NULL"),
+               $4->type, ($4->value_str ? $4->value_str : "NULL"));
+        $$ = create_node_keyword("OBJECT_CONDITION");
+    }
     ;
 
 loop_block:
-    WHILE condition COLON NEWLINE inner_statements LOOP END
-    { printf("DEBUG PARSER: Loop Block parsed.\n"); $$ = create_node_keyword("LOOP_BLOCK"); /* Incluir $2 e os statements do loop como filhos */ }
+    WHILE condition COLON NEWLINE statements LOOP END
+    { printf("DEBUG PARSER: Loop Block parsed.\n"); $$ = create_node_keyword("LOOP_BLOCK"); }
     ;
 
 relational_bool:
@@ -183,7 +187,7 @@ relational_operator:
 
 collect_command:
     COLLECT_KEYWORD COLLECTABLE DIRECTION
-    { printf("DEBUG PARSER: Collect Command: collect %s %s\n", $2, $3); $$ = create_node_str("COLLECT_COMMAND", $2); /* $3 é o nó da direção */ }
+    { printf("DEBUG PARSER: Collect Command: collect %s %s\n", $2, $3); $$ = create_node_str("COLLECT_COMMAND", $2); }
     ;
 
 factor:
@@ -200,7 +204,7 @@ factor:
 %%
 
 void yyerror(const char *s) {
-    fprintf(stderr, "Erro de sintaxe na linha %d: %s, token '%s'\n", yylineno, s, yytext);
+    fprintf(stderr, "Erro de sintaxe na linha %d: %s\n", yylineno, s);
 }
 
 int main(int argc, char **argv) {
@@ -217,6 +221,8 @@ int main(int argc, char **argv) {
     }
 
     yyparse();
+
+    printf("Parsing completed. Check for syntax errors above.\n");
 
     if (argc > 1) {
         fclose(yyin);
